@@ -1,8 +1,7 @@
 # !/usr/bin/env python
 # coding:utf-8
 
-import os
-import wx
+import os,wx
 
 '''
 	Simple Command Launcher.
@@ -22,19 +21,22 @@ class CmdLauncher(wx.Frame):
 		self.List = []
 		Frm = wx.Frame(None, -1, "CmdLauncher", size=(400,50),pos=(400,400))
 		self.TxtCtr = wx.TextCtrl(Frm, -1)
-		self.TxtCtr.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+		self.TxtCtr.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 		self.lbFrame = wx.Frame(None, 0, "wxPython", size=(420,200),pos=(400,448),style=wx.DOUBLE_BORDER)
 		self.LBox = wx.ListBox(self.lbFrame, -1, choices = self.List, size=(415,200))
+		self.LBox.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 		Frm.Show()
 		self.TxtCtr.SetFocus()
 
-	def OnKeyDown(self,event):		
+	def on_key_down(self,event):
 		'''
 			handling the key.
 		'''
 		
 		key = event.GetKeyCode()
 		input = self.TxtCtr.GetValue()
+		if input == u'':
+			input = '/'
 		input = os.path.normpath(os.path.normcase(input))
 		select = self.LBox.GetStringSelection()
 		if key ==  wx.WXK_ESCAPE:
@@ -42,20 +44,22 @@ class CmdLauncher(wx.Frame):
 		elif key == wx.WXK_SHIFT:
 			event.Skip()
 		elif key == wx.WXK_TAB:
-			SetTextValue(select)
-			if SearchExist(self, input):
-				SetCurrentList(self, select)
+			set_text(self, select)
+			if search_exist(self, input):
+				set_list(self, select)
 			else:
 				event.Skip()
 		elif key == wx.WXK_UP:
 			count = self.LBox.GetCount()
 			next = self.LBox.GetSelection() - 1
+			self.LBox.EnsureVisible(next)
 			if next >=  0:
 				self.LBox.SetSelection(next)
 			else: self.LBox.SetSelection(count - 1)
 		elif key == wx.WXK_DOWN:
 			count = self.LBox.GetCount()
 			next = self.LBox.GetSelection() + 1
+			self.LBox.EnsureVisible(next)
 			if next < count:
 				self.LBox.SetSelection(next)
 			elif count > 0:
@@ -63,7 +67,7 @@ class CmdLauncher(wx.Frame):
 			else:
 				event.Skip()
 		elif key == wx.WXK_RETURN:
-			SetTextValue(select)
+			set_text(self, select)
 			self.lbFrame.Hide()
 			if os.path.isdir(select) :
 				os.system("explorer " + select)
@@ -71,34 +75,37 @@ class CmdLauncher(wx.Frame):
 				os.system(select)
 		else:
 			if input != "" and os.path.exists(input) :
-				if SearchExist(self, input):
+				if search_exist(self, input):
 					event.Skip()
 				else:
-					SetCurrentList(self, input)
+					set_list(self, input)
 					event.Skip()
 			else:
 				event.Skip()
+			self.lbFrame.SetFocus()
 
-def SetTextValue(self, value):
+def set_text(self, value):
 	self.TxtCtr.Clear()
 	self.TxtCtr.SetValue(value)
 	self.TxtCtr.SetFocus()
 	self.TxtCtr.SetInsertionPoint(self.TxtCtr.LastPosition)
 
-def SetCurrentList(self, input):
+def set_list(self, input):
 	self.LBox.Clear()
 	self.lbFrame.Show()
-	files = os.listdir(input)
-	for file in files:
-		if os.path.isdir(file):
-			self.LBox.Append(input + os.sep + file + os.sep)
-		else:
-			self.LBox.Append(input + os.sep + file)
-	self.TxtCtr.SetFocus()
+	if os.path.isdir(input):
+		files = os.listdir(input)
+		for file in files:
+			if os.path.isdir(file):
+				self.LBox.Append(input + os.sep + file + os.sep)
+			else:
+				self.LBox.Append(input + os.sep + file)
+		self.TxtCtr.SetFocus()
 	
-def SearchExist(self, target):
-	for i in self.LBox.GetItems():
-		if i == target :
+def search_exist(self, target):
+	for item in self.LBox.GetItems():
+		item = os.path.normpath(os.path.normcase(item))
+		if item.encode('utf-8').startswith(target.encode('utf-8')) :
 			return True
 
 def main():
